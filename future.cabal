@@ -1,0 +1,27 @@
+name:                future
+version:             0.1
+synopsis:            Future values
+description:         Future values, yeah!
+license:             BSD3
+license-file:        LICENSE
+author:              Dimitri Sabadie <dimitri.sabadie@gmail.com>
+maintainer:          Dimitri Sabadie <dimitri.sabadie@gmail.com>
+copyright:           Dimitri Sabadie
+category:            Concurrency
+
+build-type:          Simple
+extra-source-files:  CHANGELOG.md
+cabal-version:       >= 1.10
+
+library
+  ghc-options:         -W -Wall
+
+  exposed-modules:     Control.Concurrent.Future
+
+  build-depends:       base         >= 4.8 && < 4.9
+                     , transformers >= 0.4 && < 0.5
+                     , containers   >= 0.5 && < 0.6
+
+  hs-source-dirs:      src
+
+  default-language:    Haskell2010
