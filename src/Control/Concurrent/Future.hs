@@ -5,6 +5,8 @@ module Control.Concurrent.Future (
     -- * Working with 'Future'
   , asSoonAs
   , nestWith
+    -- * Fulfilling futures
+  , Fulfil(fulfil)
   ) where
 
 import Control.Monad.IO.Class ( MonadIO(..) )
@@ -16,9 +18,11 @@ import Data.IORef
 -- /in the future/.
 newtype Future a = Future ( (a -> IO ()) -> IO (IO ()) )
 
--- |Create a new @Future a@ along with a /trigger/, @a -> IO ()@. The /trigger/
--- should be invoked
-newFuture :: (MonadIO m) => m (Future a,a -> IO ())
+-- |@Fulfil a@ is used to 'fulfil' @Future a@.
+newtype Fulfil a = Fulfil { fulfil :: a -> IO () }
+
+-- |Create a new @Future a@ along with a @Fulfil a@
+newFuture :: (MonadIO m) => m (Future a,Fulfil a)
 newFuture = liftIO $ do
     callbacksRef <- newIORef M.empty
     hRef <- newIORef 0
@@ -29,7 +33,7 @@ newFuture = liftIO $ do
       modifyIORef callbacksRef $ insert h cb
       writeIORef hRef (succ h)
       pure . modifyIORef callbacksRef $ delete h
-    register ref a = liftIO $ readIORef ref >>= traverse_ ($ a)
+    register ref = Fulfil $ \a -> liftIO $ readIORef ref >>= traverse_ ($ a)
 
 -- |@f `asSoonAs` fut@ starts producing with 'f' as soon as 'fut' occurs. That
 -- function returns a /clean-up action/, @m ()@, that you can use to cancel your
@@ -50,5 +54,5 @@ nestWith :: (Applicative m,MonadIO m)
         -> m (Future b,m ())
 nestWith futA f = do
   (futB,triggerB) <- newFuture
-  release <- (triggerB . f) `asSoonAs` futA
+  release <- (fulfil triggerB . f) `asSoonAs` futA
   pure (futB,release)
