@@ -49,9 +49,9 @@ asSoonAs f (Future register) = liftIO . fmap liftIO $ register f
 -- That function returns a /clean-up action/ you can use to detach the nested
 -- @Future b@. After that, it won’t ever produce again.
 nestWith :: (Applicative m,MonadIO m)
-        => Future a
-        -> (a -> b)
-        -> m (Future b,m ())
+         => Future a
+         -> (a -> b)
+         -> m (Future b,m ())
 nestWith futA f = do
   (futB,triggerB) <- newFuture
   release <- (fulfil triggerB . f) `asSoonAs` futA
