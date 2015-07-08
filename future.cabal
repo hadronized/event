@@ -18,9 +18,10 @@ library
 
   exposed-modules:     Control.Concurrent.Future
 
-  build-depends:       base         >= 4.8 && < 4.9
-                     , transformers >= 0.4 && < 0.5
-                     , containers   >= 0.5 && < 0.6
+  build-depends:       base         >= 4.8  && < 4.9
+                     , transformers >= 0.4  && < 0.5
+                     , containers   >= 0.5  && < 0.6
+                     , semigroups   >= 0.16 && < 0.17
 
   hs-source-dirs:      src
 

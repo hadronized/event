@@ -10,60 +10,72 @@
 ----------------------------------------------------------------------------
 
 module Control.Concurrent.Future (
-    -- * Future values
-    Future
-  , newFuture
-    -- * Working with 'Future'
-  , asSoonAs
-  , nestWith
-    -- * Fulfilling futures
+    -- * Events
+    Event
+  , newEvent
+    -- * Fulfilling events
   , Fulfil(fulfil)
   ) where
 
+import Control.Monad ( ap )
 import Control.Monad.IO.Class ( MonadIO(..) )
 import Data.Foldable ( traverse_ )
 import Data.IntMap as M
 import Data.IORef
+import Data.Semigroup ( Semigroup(..) )
 
--- |A @Future a@ is a value of type 'a' with no direct representation. It lives
--- /in the future/.
-newtype Future a = Future ( (a -> IO ()) -> IO (IO ()) )
+-- |A @Event a@ is a value of type 'a' with no direct representation. It lives
+-- /in the future/. It’s possible to register callbacks with 'on' to execute
+-- actions when data becomes available, and to detach those actions with the
+-- resulting 'Detach' object by calling 'detach' on it.
+newtype Event a = Event { on :: (a -> IO ()) -> IO Detach }
 
--- |@Fulfil a@ is used to 'fulfil' @Future a@.
+instance Applicative Event where
+  pure x = Event $ \k -> k x >> pure mempty
+  (<*>) = ap
+
+instance Functor Event where
+  fmap f e = Event $ \k -> on e $ k . f
+
+instance Monad Event where
+  return = pure
+  x >>= f = Event $ \k -> do
+    dref <- newIORef mempty
+    dx <- on x $ \x' -> do
+      dfx <- on (f x') k
+      modifyIORef dref (<> dfx)
+    modifyIORef dref (<> dx)
+    pure . Detach $ readIORef dref >>= detach
+
+instance Monoid (Event a) where
+  mempty = Event . const $ pure mempty
+  mappend = (<>)
+
+instance Semigroup (Event a) where
+  a <> b = Event $ \k -> (<>) <$> on a k <*> on b k
+
+newtype Detach = Detach { detach :: IO () }
+
+instance Monoid Detach where
+  mempty = Detach $ pure ()
+  mappend = (<>)
+
+instance Semigroup Detach where
+  a <> b = Detach $ detach a >> detach b
+
+-- |@Fulfil a@ is used to 'fulfil' an @Event a@.
 newtype Fulfil a = Fulfil { fulfil :: a -> IO () }
 
--- |Create a new @Future a@ along with a @Fulfil a@
-newFuture :: (MonadIO m) => m (Future a,Fulfil a)
-newFuture = liftIO $ do
+-- |Create a new @Event a@ along with a @Fulfil a@.
+newEvent :: (MonadIO m) => m (Event a,Fulfil a)
+newEvent = liftIO $ do
     callbacksRef <- newIORef M.empty
     hRef <- newIORef 0
     pure (fut callbacksRef hRef,register callbacksRef)
   where
-    fut callbacksRef hRef = Future $ \cb -> do
+    fut callbacksRef hRef = Event $ \cb -> do
       h <- fmap succ $ readIORef hRef
       modifyIORef callbacksRef $ insert h cb
       writeIORef hRef (succ h)
-      pure . modifyIORef callbacksRef $ delete h
+      pure . Detach . modifyIORef callbacksRef $ delete h
     register ref = Fulfil $ \a -> liftIO $ readIORef ref >>= traverse_ ($ a)
-
--- |@f `asSoonAs` fut@ starts producing with 'f' as soon as 'fut' occurs. That
--- function returns a /clean-up action/, @m ()@, that you can use to cancel your
--- 'f' producer.
-asSoonAs :: (MonadIO m) => (a -> IO ()) -> Future a -> m (m ())
-asSoonAs f (Future register) = liftIO . fmap liftIO $ register f
-
--- |From a @Future a@ we can create a @Future b@ that is bound to the former
--- one if we provide a function 'f' @a -> b@. When the parent @Future a@ occurs,
--- the child @Future b@ occurs as well, applying the provided function. The
--- later is **nested** inside the former with a function.
---
--- That function returns a /clean-up action/ you can use to detach the nested
--- @Future b@. After that, it won’t ever produce again.
-nestWith :: (Applicative m,MonadIO m)
-         => Future a
-         -> (a -> b)
-         -> m (Future b,m ())
-nestWith futA f = do
-  (futB,triggerB) <- newFuture
-  release <- (fulfil triggerB . f) `asSoonAs` futA
-  pure (futB,release)
