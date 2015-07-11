@@ -14,7 +14,8 @@ module Control.Concurrent.Event (
     Event
   , newEvent
     -- * Triggering events
-  , Trigger(trigger)
+  , Trigger
+  , trigger
   ) where
 
 import Control.Monad ( ap )
@@ -67,7 +68,11 @@ instance Semigroup Detach where
   a <> b = Detach $ detach a >> detach b
 
 -- |@'Trigger' a@ is used to 'trigger' an @'Event' a@.
-newtype Trigger a = Trigger { trigger :: a -> IO () }
+newtype Trigger a = Trigger (a -> IO ())
+
+-- |Use a 'Trigger'.
+trigger :: (MonadIO m) => Trigger a -> a -> m ()
+trigger (Trigger f) = liftIO . f
 
 -- |Create a new @'Event' a@ along with a @'Trigger' a@.
 newEvent :: (MonadIO m) => m (Event a,Trigger a)
