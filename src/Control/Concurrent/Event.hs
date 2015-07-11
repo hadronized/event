@@ -9,7 +9,7 @@
 --
 ----------------------------------------------------------------------------
 
-module Control.Concurrent.Future (
+module Control.Concurrent.Event (
     -- * Events
     Event
   , newEvent
