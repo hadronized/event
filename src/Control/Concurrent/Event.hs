@@ -13,8 +13,8 @@ module Control.Concurrent.Event (
     -- * Events
     Event
   , newEvent
-    -- * Fulfilling events
-  , Fulfil(fulfil)
+    -- * Triggering events
+  , Trigger(trigger)
   ) where
 
 import Control.Monad ( ap )
@@ -24,10 +24,13 @@ import Data.IntMap as M
 import Data.IORef
 import Data.Semigroup ( Semigroup(..) )
 
--- |A @Event a@ is a value of type 'a' with no direct representation. It lives
+-- |A @'Event' a@ is a value of type 'a' with no direct representation. It lives
 -- /in the future/. It’s possible to register callbacks with 'on' to execute
 -- actions when data becomes available, and to detach those actions with the
 -- resulting 'Detach' object by calling 'detach' on it.
+--
+-- 'Event's can be triggered with the 'trigger' function and the associated
+-- type 'Trigger'.
 newtype Event a = Event { on :: (a -> IO ()) -> IO Detach }
 
 instance Applicative Event where
@@ -63,11 +66,11 @@ instance Monoid Detach where
 instance Semigroup Detach where
   a <> b = Detach $ detach a >> detach b
 
--- |@Fulfil a@ is used to 'fulfil' an @Event a@.
-newtype Fulfil a = Fulfil { fulfil :: a -> IO () }
+-- |@'Trigger' a@ is used to 'trigger' an @'Event' a@.
+newtype Trigger a = Trigger { trigger :: a -> IO () }
 
--- |Create a new @Event a@ along with a @Fulfil a@.
-newEvent :: (MonadIO m) => m (Event a,Fulfil a)
+-- |Create a new @'Event' a@ along with a @'Trigger' a@.
+newEvent :: (MonadIO m) => m (Event a,Trigger a)
 newEvent = liftIO $ do
     callbacksRef <- newIORef M.empty
     hRef <- newIORef 0
@@ -78,4 +81,4 @@ newEvent = liftIO $ do
       modifyIORef callbacksRef $ insert h cb
       writeIORef hRef (succ h)
       pure . Detach . modifyIORef callbacksRef $ delete h
-    register ref = Fulfil $ \a -> liftIO $ readIORef ref >>= traverse_ ($ a)
+    register ref = Trigger $ \a -> liftIO $ readIORef ref >>= traverse_ ($ a)
