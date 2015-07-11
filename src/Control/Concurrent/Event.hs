@@ -50,6 +50,7 @@
 module Control.Concurrent.Event (
     -- * Events
     Event
+  , Detach(..)
   , on
   , newEvent
     -- * Triggering events
