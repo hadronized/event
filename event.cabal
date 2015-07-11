@@ -16,7 +16,7 @@ cabal-version:       >= 1.10
 library
   ghc-options:         -W -Wall
 
-  exposed-modules:     Control.Concurrent.Future
+  exposed-modules:     Control.Concurrent.Event
 
   build-depends:       base         >= 4.8  && < 4.9
                      , transformers >= 0.4  && < 0.5
