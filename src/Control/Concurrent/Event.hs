@@ -50,6 +50,7 @@
 module Control.Concurrent.Event (
     -- * Events
     Event
+  , on
   , newEvent
     -- * Triggering events
   , Trigger
@@ -70,7 +71,7 @@ import Data.Semigroup ( Semigroup(..) )
 --
 -- 'Event's can be triggered with the 'trigger' function and the associated
 -- type 'Trigger'.
-newtype Event a = Event { on :: (a -> IO ()) -> IO Detach }
+newtype Event a = Event ((a -> IO ()) -> IO Detach)
 
 instance Applicative Event where
   pure x = Event $ \k -> k x >> pure mempty
@@ -95,6 +96,10 @@ instance Monoid (Event a) where
 
 instance Semigroup (Event a) where
   a <> b = Event $ \k -> (<>) <$> on a k <*> on b k
+
+-- |Register an action.
+on :: (MonadIO m) => Event a -> (a -> IO ()) -> m Detach
+on (Event register) f = liftIO $ register f
 
 -- |'Detach' is used to detach an action from an 'Event'.
 newtype Detach = Detach { detach :: IO () }
