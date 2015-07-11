@@ -7,6 +7,44 @@
 -- Stability   : experimental
 -- Portability : portable
 --
+-- An @'Event' a@ is an object representing an event of type 'a'. You can
+-- register actions through it – see the 'on' function – and detach them later
+-- on.
+--
+-- An 'Event' has many purposes. The one in mind when writing that package was
+-- to interface over __C__ callback-based reactive system. Consider the
+-- following __Haskell__ wrapper function, which is based on imperative style:
+--
+-- @
+--   -- Create a new button and register an action to launch when the button’s
+--   -- state changes.
+--   createButton :: (ButtonState -> IO ()) -> IO Button
+--   createButton callback = do
+--     -- create the button
+--     button <- ...
+--     forkIO . forever $ do
+--       -- launch a thread in which we can test whether the state has changed
+--       when stateHasChanged $ callback newState
+--     pure button
+-- @
+--
+-- We can enhance that by representing the action of registering to the event
+-- and detaching from it by immediately returning a value:
+--
+-- @
+--   createButton :: IO (Button,Event ButtonState)
+--   createButton = do
+--     -- create the button
+--     button <- ...
+--     -- create an 'Event'
+--     (ev,t) <- newEvent
+--     forkIO . forever $
+--       -- check the new state
+--       when stateHasChanged $ trigger t newState
+--     pure (button,ev)
+-- @
+--
+-- The 'Trigger' can also be returned to manually invoke the 'Event'.
 ----------------------------------------------------------------------------
 
 module Control.Concurrent.Event (
@@ -25,9 +63,9 @@ import Data.IntMap as M
 import Data.IORef
 import Data.Semigroup ( Semigroup(..) )
 
--- |A @'Event' a@ is a value of type 'a' with no direct representation. It lives
--- /in the future/. It’s possible to register callbacks with 'on' to execute
--- actions when data becomes available, and to detach those actions with the
+-- |An @'Event' a@ is a value of type 'a' with no direct representation. It lives
+-- /in the future/. It’s possible to register actions with 'on' to execute
+-- when data becomes available, and to detach those actions with the
 -- resulting 'Detach' object by calling 'detach' on it.
 --
 -- 'Event's can be triggered with the 'trigger' function and the associated
@@ -58,6 +96,7 @@ instance Monoid (Event a) where
 instance Semigroup (Event a) where
   a <> b = Event $ \k -> (<>) <$> on a k <*> on b k
 
+-- |'Detach' is used to detach an action from an 'Event'.
 newtype Detach = Detach { detach :: IO () }
 
 instance Monoid Detach where
@@ -82,7 +121,7 @@ newEvent = liftIO $ do
     pure (fut callbacksRef hRef,register callbacksRef)
   where
     fut callbacksRef hRef = Event $ \cb -> do
-      h <- fmap succ $ readIORef hRef
+      h <- succ <$> readIORef hRef
       modifyIORef callbacksRef $ insert h cb
       writeIORef hRef (succ h)
       pure . Detach . modifyIORef callbacksRef $ delete h
