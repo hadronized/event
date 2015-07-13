@@ -54,7 +54,7 @@ module Control.Concurrent.Event (
   , on
   , newEvent
     -- * Triggering events
-  , Trigger
+  , Trigger(..)
   , trigger
   ) where
 
