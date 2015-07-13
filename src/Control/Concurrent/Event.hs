@@ -115,6 +115,13 @@ instance Semigroup Detach where
 -- |@'Trigger' a@ is used to 'trigger' an @'Event' a@.
 newtype Trigger a = Trigger (a -> IO ())
 
+instance Monoid (Trigger a) where
+  mempty = Trigger . const $ pure ()
+  mappend = (<>)
+  
+instance Semigroup (Trigger a) where
+  Trigger f <> Trigger g = Trigger $ \a -> f a >> g a
+
 -- |Use a 'Trigger'.
 trigger :: (MonadIO m) => Trigger a -> a -> m ()
 trigger (Trigger f) = liftIO . f
