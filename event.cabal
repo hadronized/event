@@ -1,5 +1,5 @@
 name:                event
-version:             0.1.1
+version:             0.1.2
 synopsis:            Monoidal, monadic and first-class events
 description:         This package can be used to represent events as
                      first-class objects instead of deepening callbacks and
@@ -29,7 +29,7 @@ library
   build-depends:       base         >= 4.8  && < 4.9
                      , transformers >= 0.4  && < 0.5
                      , containers   >= 0.5  && < 0.6
-                     , semigroups   >= 0.16 && < 0.17
+                     , semigroups   >= 0.16 && < 0.18
 
   hs-source-dirs:      src
 

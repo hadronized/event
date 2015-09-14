@@ -1,3 +1,7 @@
+## 0.1.2
+
+- Added support for semigroups-0.17.
+
 ## 0.1.1
 
 - Monoid and Semigroup instance for Trigger.
