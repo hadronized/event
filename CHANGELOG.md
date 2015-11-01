@@ -1,3 +1,7 @@
+### 0.1.2.1
+
+- Added support for semigroups-0.18.
+
 ## 0.1.2
 
 - Added support for semigroups-0.17.
