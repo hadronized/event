@@ -56,9 +56,11 @@ module Control.Concurrent.Event (
     -- * Triggering events
   , Trigger(..)
   , trigger
+    -- * Event combinators
+  , filterE
   ) where
 
-import Control.Monad ( ap )
+import Control.Monad ( ap, when )
 import Control.Monad.IO.Class ( MonadIO(..) )
 import Data.Foldable ( traverse_ )
 import Data.IntMap as M
@@ -72,7 +74,7 @@ import Data.Semigroup ( Semigroup(..) )
 --
 -- 'Event's can be triggered with the 'trigger' function and the associated
 -- type 'Trigger'.
-newtype Event a = Event ((a -> IO ()) -> IO Detach)
+newtype Event a = Event { unEvent :: (a -> IO ()) -> IO Detach }
 
 instance Applicative Event where
   pure x = Event $ \k -> k x >> pure mempty
@@ -139,3 +141,9 @@ newEvent = liftIO $ do
       writeIORef hRef (succ h)
       pure . Detach . modifyIORef callbacksRef $ delete h
     register ref = Trigger $ \a -> liftIO $ readIORef ref >>= traverse_ ($ a)
+
+filterE :: (a -> Bool) -> Event a -> Event a
+filterE predicate e = Event $ \k -> do
+  (filtered,trig) <- newEvent
+  _ <- on e $ \a -> when (predicate a) (trigger trig a)
+  unEvent filtered k
