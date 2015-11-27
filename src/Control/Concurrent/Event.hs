@@ -58,6 +58,7 @@ module Control.Concurrent.Event (
   , trigger
     -- * Event combinators
   , filterE
+  , foldrE
   ) where
 
 import Control.Monad ( ap, when )
@@ -148,3 +149,17 @@ filterE predicate e = Event $ \k -> do
   (filtered,trig) <- newEvent
   _ <- on e $ \a -> when (predicate a) (trigger trig a)
   unEvent filtered k
+
+-- |Right fold an 'Event'. Each time an event occur, the function folding function is applied and
+-- the result is passed to the future 'Event'.
+foldrE :: (b -> a -> b) -> b -> Event a -> Event b
+foldrE f b e = Event $ \k -> do
+  (folded,trig) <- newEvent
+  ref <- newIORef b
+  _ <- on e $ \a -> do
+    acc <- readIORef ref
+    let x = f acc a
+    writeIORef ref x
+    trigger trig x
+  unEvent folded k
+
