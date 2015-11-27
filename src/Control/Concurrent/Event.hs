@@ -142,6 +142,7 @@ newEvent = liftIO $ do
       pure . Detach . modifyIORef callbacksRef $ delete h
     register ref = Trigger $ \a -> liftIO $ readIORef ref >>= traverse_ ($ a)
 
+-- |Filter an 'Event' with a predicate.
 filterE :: (a -> Bool) -> Event a -> Event a
 filterE predicate e = Event $ \k -> do
   (filtered,trig) <- newEvent
