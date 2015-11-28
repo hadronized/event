@@ -1,3 +1,8 @@
+### 0.1.3
+
+- Added foldrE.
+- Added filterE.
+
 ### 0.1.2.1
 
 - Added support for semigroups-0.18.
