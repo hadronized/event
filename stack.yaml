@@ -1,9 +1,9 @@
-resolver: lts-3.10
+resolver: ghc-8.0.1
 
 packages:
 - '.'
 
-extra-deps: []
+extra-deps: [ semigroups-0.18.1 ]
 
 flags: {}
 

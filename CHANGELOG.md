@@ -1,3 +1,7 @@
+### 0.1.4
+
+- Support for GHC 8.0.1.
+
 ### 0.1.3
 
 - Added foldrE.
