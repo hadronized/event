@@ -1,3 +1,7 @@
+### 0.1.5
+
+- Expose Event data constructor.	
+
 ### 0.1.4
 
 - Support for GHC 8.0.1.
