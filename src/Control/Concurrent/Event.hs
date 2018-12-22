@@ -49,7 +49,7 @@
 
 module Control.Concurrent.Event (
     -- * Events
-    Event
+    Event(..)
   , Detach(..)
   , on
   , newEvent
